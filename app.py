@@ -1,8 +1,9 @@
-from flask import Flask, session, request, jsonify, render_template
-from psn import PSNSession, get_npsso
-from model import create_tables, db, User, Device
-from functools import wraps
 import pickle
+from functools import wraps
+from flask import Flask, session, jsonify, render_template
+
+import psn as PSN
+from model import create_tables, db, User, Device
 from util import request_needs
 
 app = Flask(__name__)
@@ -17,18 +18,22 @@ def after_request(resp):
     db.close()
     return resp
 
-@app.route('/sso', methods=['GET'])
+@app.route('/get_sso', methods=['GET'])
 @request_needs('username', 'password', in_='args')
 def get_sso(username, password):
-    return get_npsso(username, password)
+    try:
+        sso = PSN.get_sso(username, password)
+    except PSN.PSNError as e:
+        return render_template('error.html', message=e.description)
+    return render_template('plain.html', content=sso)
 
 @app.route('/register_device', methods=['GET'])
 @request_needs('sso', 'apns_token', in_='args')
 def register_device(sso, apns_token):
     # get an existing user or create a new one
-    user = User.get_or_create(sso=sso)[0]
+    user, _ = User.get_or_create(sso=sso)
     # create the device if it doesn't already exist
-    _, created = Device.create_or_get(apns_token=apns_token)
+    _, created = Device.get_or_create(apns_token=apns_token, user=user)
     response = "registered device!" if created else "device already registered!"
     return render_template('plain.html', content=response)
 

@@ -2,6 +2,8 @@ from enum import Enum
 from datetime import datetime, timedelta
 from peewee import SqliteDatabase, Model, CharField, ForeignKeyField, DateTimeField, Field
 
+from psn import PSNToken
+
 db = SqliteDatabase('pysn.db')
 
 class BaseModel(Model):
@@ -10,20 +12,24 @@ class BaseModel(Model):
 
 class User(BaseModel):
     sso = CharField(unique=True)
-
-class APIToken(BaseModel):
-    value = CharField(unique=True)
-    expiry_date = DateTimeField()
+    access_token = CharField(unique=True)
+    access_token_expiry = DateTimeField()
+    refresh_token = CharField(unique=True)
+    refresh_token_expiry = DateTimeField()
 
     @property
-    def expired():
-        return expiry_date > datetime.now()
+    def access_token(self):
+        if access_token and access_token_expiry:
+            return PSNToken(access_token, access_token_expiry)
+        else:
+            return None
 
-class AccessToken(APIToken):
-    user = ForeignKeyField(User, related_name='access_token')
-
-class RefreshToken(APIToken):
-    access_token = ForeignKeyField(AccessToken, related_name='refresh_token')
+    @property
+    def refresh_token(self):
+        if refresh_token and refresh_token_expiry:
+            return PSNToken(refresh_token, refresh_token_expiry)
+        else:
+            return None
 
 class Device(BaseModel):
     # apple push notification system device token
@@ -33,4 +39,4 @@ class Device(BaseModel):
 
 def create_tables():
     db.connect()
-    db.create_tables([User, AccessToken, RefreshToken, Device], safe=True)
+    db.create_tables([User, Device], safe=True)

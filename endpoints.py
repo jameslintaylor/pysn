@@ -1,10 +1,8 @@
 from moya import Endpoint, HTTPMethod
 
 class AuthEndpoint(Endpoint):
-    authorize = 1
-    login = 2
-    sso = 3
-    token = 4
+    sso = 1
+    token = 2
 
     @property
     def url(self):
@@ -22,7 +20,6 @@ class AuthEndpoint(Endpoint):
 
     @property
     def parameters(self):
-
         def token_grant_parameters():
             if hasattr(self, 'refresh_token'):
                 return {
