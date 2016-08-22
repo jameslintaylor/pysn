@@ -1,10 +1,10 @@
 from moya import Endpoint, HTTPMethod
 
-## AUTHENTICATION
-
 class AuthEndpoint(Endpoint):
-    sso = 1
-    token = 2
+    authorize = 1
+    login = 2
+    sso = 3
+    token = 4
 
     @property
     def url(self):
@@ -22,6 +22,19 @@ class AuthEndpoint(Endpoint):
 
     @property
     def parameters(self):
+
+        def token_grant_parameters():
+            if hasattr(self, 'refresh_token'):
+                return {
+                    'grant_type': 'refresh_token',
+                    'refresh_token': self.refresh_token
+                }
+            if hasattr(self, 'npsso'):
+                return {
+                    'grant_type': 'sso_cookie',
+                    'npsso': self.npsso
+                }
+
         return {
             AuthEndpoint.sso: \
             lambda: {
@@ -34,9 +47,8 @@ class AuthEndpoint(Endpoint):
             lambda: {
                 'client_id': '4db3729d-4591-457a-807a-1cf01e60c3ac',
                 'client_secret': 'criemouwIuVoa4iU',
-                'grant_type': 'sso_cookie',
-                'npsso': self.npsso,
-                'scope': 'user:account.get'
+                'scope': 'user:account.get',
+                **token_grant_parameters()
             }
         }.get(self, lambda: None)()
 
@@ -49,9 +61,14 @@ class AuthEndpointFactory:
         return endpoint
 
     @classmethod
-    def token(cls, npsso):
+    def token(cls, refresh_token=None, npsso=None):
         endpoint = AuthEndpoint.token
-        endpoint.npsso = npsso
+        if refresh_token:
+            endpoint.refresh_token = refresh_token
+        elif npsso:
+            endpoint.npsso = npsso
+        else:
+            print("warning: token endpoint created without refresh_token or npsso!")
         return endpoint
 
 ## USER
@@ -62,9 +79,7 @@ class UserEndpoint(Endpoint):
 
     @property
     def url(self):
-        base = 'https://ca-prof.np.community.playstation.net/userProfile/v1/users/{}' \
-                .format(self.user)
-        return base + {
+        return 'https://ca-prof.np.community.playstation.net/userProfile/v1/users/me' + {
             UserEndpoint.profile: '/profile2',
             UserEndpoint.friends: '/friends/profiles2'
         }.get(self)
@@ -79,13 +94,15 @@ class UserEndpoint(Endpoint):
     @property
     def parameters(self):
         return {
+            UserEndpoint.profile: \
+            lambda: {
+                'fields': 'onlineId,presences(@titleInfo)'
+            },
             UserEndpoint.friends: \
             lambda: {
                 'limit': 16,
                 'fields': 'onlineId,presences(@titleInfo)',
-                'sort': 'onlineStatus',
-                'avatarSizes': 'm',
-                'profilePictureSizes': 'm'
+                'sort': 'onlineStatus'
             }
         }.get(self, lambda: None)()
 
@@ -97,8 +114,13 @@ class UserEndpoint(Endpoint):
 
 class UserEndpointFactory:
     @classmethod
-    def friends(cls, user, access_token):
+    def profile(cls, access_token):
+        endpoint = UserEndpoint.profile
+        endpoint.access_token = access_token
+        return endpoint
+
+    @classmethod
+    def friends(cls, access_token):
         endpoint = UserEndpoint.friends
-        endpoint.user = user
         endpoint.access_token = access_token
         return endpoint
