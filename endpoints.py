@@ -68,8 +68,6 @@ class AuthEndpointFactory:
             print("warning: token endpoint created without refresh_token or npsso!")
         return endpoint
 
-## USER
-
 class UserEndpoint(Endpoint):
     profile = 1
     friends = 2
