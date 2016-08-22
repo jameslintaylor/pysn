@@ -1,4 +1,4 @@
-from moya import Endpoint, HTTPMethod
+from .moya import Endpoint, HTTPMethod
 
 class AuthEndpoint(Endpoint):
     sso = 1

@@ -1,8 +1,8 @@
-from moya import Provider
+from datetime import datetime, timedelta
 from functools import wraps
 
-from endpoints import AuthEndpointFactory, UserEndpointFactory
-from datetime import datetime, timedelta
+from .moya import Provider
+from .endpoints import AuthEndpointFactory, UserEndpointFactory
 
 class PSNError(BaseException):
     """wraps the json style errors returned by the psn api"""
